@@ -1,0 +1,6 @@
+This project includes and modifies portions of Meridian 59.
+© 1994–2022 Andrew Kirmse and Chris Kirmse. Licensed under GPL-2.0-only.
+
+Adapted code:
+- BGF load functions from makebgf
+- ROO load functions from roomeditor

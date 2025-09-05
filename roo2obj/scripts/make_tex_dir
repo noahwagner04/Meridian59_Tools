@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+if [ -z "$1" ] || [ -z "$2" ]; then
+	echo "Usage: $0 <resource_dir> <path_to_bgf2png>"
+	exit 1
+fi
+
+DIR="$1"
+BGF2PNG="$2"
+
+BGF2PNG=$(realpath "$BGF2PNG")
+
+OUTPUT_DIR="$(pwd)/textures"
+mkdir -p "$OUTPUT_DIR"
+
+shopt -s nullglob
+for bgf_file in "$DIR"/grd[0-9][0-9][0-9][0-9][0-9].bgf; 
+do
+	bgf_file_abs=$(realpath "$bgf_file")
+
+	cd "$OUTPUT_DIR"
+
+	"$BGF2PNG" "$bgf_file_abs"
+
+	cd - >/dev/null
+done
+
+echo "Processing complete."

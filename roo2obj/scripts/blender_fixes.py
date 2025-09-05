@@ -1,0 +1,80 @@
+import bpy
+
+THRESHOLD = 0.5        # Alpha cutoff
+FORCE_REWIRE = False   # True to replace any existing link to Principled Alpha
+
+def find_principled(mat):
+    nt = mat.node_tree
+    nodes, links = nt.nodes, nt.links
+    # Prefer the Principled that feeds the active Material Output
+    out = next((n for n in nodes if n.type == 'OUTPUT_MATERIAL' and n.is_active_output), None)
+    if out and out.inputs.get('Surface') and out.inputs['Surface'].is_linked:
+        n = out.inputs['Surface'].links[0].from_node
+        if n.type == 'BSDF_PRINCIPLED':
+            return n
+    # Fallback: first Principled
+    return next((n for n in nodes if n.type == 'BSDF_PRINCIPLED'), None)
+
+def pick_image_node(mat):
+    # Pick an image texture that is not only driving a Normal/Bump map
+    nt = mat.node_tree
+    for n in nt.nodes:
+        if n.type == 'TEX_IMAGE' and n.image:
+            dest_nodes = [l.to_node for l in n.outputs['Color'].links] + [l.to_node for l in n.outputs['Alpha'].links]
+            if dest_nodes and all(d.type in {'NORMAL_MAP', 'BUMP'} for d in dest_nodes):
+                continue
+            return n
+    return None
+
+def ensure_math_node(mat):
+    nt = mat.node_tree
+    # Reuse an existing GREATER_THAN node if present
+    for n in nt.nodes:
+        if n.type == 'MATH' and n.operation == 'GREATER_THAN':
+            return n
+    n = nt.nodes.new('ShaderNodeMath')
+    n.operation = 'GREATER_THAN'
+    n.inputs[1].default_value = THRESHOLD
+    n.label = 'AlphaClipThreshold'
+    # Optional: place near Principled (simple offset)
+    return n
+
+for mat in bpy.data.materials:
+    if not mat.use_nodes:
+        continue
+
+    principled = find_principled(mat)
+    if not principled:
+        continue
+
+    alpha_in = principled.inputs.get('Alpha')
+    if not alpha_in:
+        continue
+    if alpha_in.is_linked and not FORCE_REWIRE:
+        continue
+
+    img = pick_image_node(mat)
+    if not img or 'Alpha' not in img.outputs:
+        continue
+
+    math_node = ensure_math_node(mat)
+    nt, links = mat.node_tree, mat.node_tree.links
+
+    if FORCE_REWIRE:
+        while alpha_in.is_linked:
+            nt.links.remove(alpha_in.links[0])
+
+    if not math_node.inputs[0].is_linked:
+        links.new(img.outputs['Alpha'], math_node.inputs[0])
+    if not alpha_in.is_linked:
+        links.new(math_node.outputs[0], alpha_in)
+
+    # EEVEE Next: Render Method replaces old Blend Mode
+    mat.surface_render_method = 'DITHERED'   # or 'BLENDED' for alpha blend
+    mat.use_transparent_shadow = True
+    
+    for node in mat.node_tree.nodes:
+        if node.type == "TEX_IMAGE" and node.image is not None:
+            node.interpolation = 'Closest'
+
+    mat.use_backface_culling = True
