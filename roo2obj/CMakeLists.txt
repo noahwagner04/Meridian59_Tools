@@ -19,7 +19,7 @@ FetchContent_MakeAvailable(jansson)
 
 add_executable(roo2obj roo2obj.c)
 
-target_link_libraries(roo2obj PRIVATE jansson)
+target_link_libraries(roo2obj PRIVATE jansson m)
 
 target_include_directories(roo2obj PRIVATE
 	"${jansson_BINARY_DIR}/include"
