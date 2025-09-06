@@ -248,9 +248,16 @@ void set_material_info(char *json_file_path, struct material *mat)
 {
 	json_error_t error;
 	int error_type = ET_NO_ERROR;
-	json_t *root = json_load_file(json_file_path, 0, &error);
+	json_t *root = NULL;
+	json_t *shrink_factor = NULL;
+	json_t *sprites = NULL;
+	json_t *texture = NULL;
+	json_t *file_name = NULL;
+	json_t *width = NULL;
+	json_t *height = NULL;
 
-	if (!root) {
+	root = json_load_file(json_file_path, 0, &error);
+	if (root == NULL) {
 		if (error.line == -1)
 			error_type = ET_LOAD;
 		else
@@ -263,8 +270,8 @@ void set_material_info(char *json_file_path, struct material *mat)
 		goto invalid;
 	}
 
-	json_t *shrink_factor = json_object_get(root, "shrink_factor");
-	json_t *sprites = json_object_get(root, "sprites");
+	shrink_factor = json_object_get(root, "shrink_factor");
+	sprites = json_object_get(root, "sprites");
 
 	if (!json_is_integer(shrink_factor) || !json_is_array(sprites)) {
 		error_type = ET_INVALID_DATA;
@@ -276,16 +283,16 @@ void set_material_info(char *json_file_path, struct material *mat)
 		goto invalid;
 	}
 
-	json_t *texture = json_array_get(sprites, 0);
+	texture = json_array_get(sprites, 0);
 
 	if (!json_is_object(texture)) {
 		error_type = ET_INVALID_DATA;
 		goto invalid;
 	}
 
-	json_t *file_name = json_object_get(texture, "file_name");
-	json_t *width = json_object_get(texture, "width");
-	json_t *height = json_object_get(texture, "height");
+	file_name = json_object_get(texture, "file_name");
+	width = json_object_get(texture, "width");
+	height = json_object_get(texture, "height");
 
 	if (!json_is_string(file_name) || !json_is_integer(width) ||
 	    !json_is_integer(height)) {
@@ -311,6 +318,7 @@ void set_material_info(char *json_file_path, struct material *mat)
 	strcpy(mat->texture_file_path, temp_str);
 
 	mat->is_valid = 1;
+	json_decref(root);
 	return;
 
 invalid:
@@ -330,8 +338,7 @@ invalid:
 		break;
 	}
 	mat->is_valid = 0;
-	if (root)
-		json_decref(root);
+	json_decref(root);
 }
 
 // NOTE: not sure what to do when there is more than 1 bitmap for texture_number
@@ -378,6 +385,7 @@ void mesh_object_init(struct mesh_object *mesh_obj, uint16_t texture_number)
 
 	char *json_file_path = get_json_file_path(texture_number);
 	set_material_info(json_file_path, &mesh_obj->material);
+	free(json_file_path);
 
 	// initial capacities allow for 1 face (2 triangles, 4 verticies)
 	dynamic_array_init(&mesh_obj->indices, 6, sizeof(uint32_t));
