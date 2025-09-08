@@ -11,4 +11,5 @@ The Meridian 59 resource folder holds all its game assets (bgf and roo files), a
 ```C:\Program Files (x86)\Steam\steamapps\common\Meridian 59\resource```. 
 - [This shared Google Drive](https://drive.google.com/drive/folders/15S8DFOqC6e0hLIgKeaLneboNBXi0QKdM) contains various Meridian 59 clients, each with its own resource folder available for download.
 ## TODO
+- add gifs / images to bgf2png and roo2obj tool descriptions.
 - provide release builds so people don't have to compile from source
