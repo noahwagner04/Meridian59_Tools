@@ -1,4 +1,4 @@
-This project includes and modifies portions of Meridian 59.
+This project includes and modifies portions of the Meridian 59 source code.
 © 1994–2022 Andrew Kirmse and Chris Kirmse. Licensed under GPL-2.0-only.
 
 Adapted code:
