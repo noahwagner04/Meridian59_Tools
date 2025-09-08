@@ -14,7 +14,7 @@ From the build directory, run:
 ```
 ./roo2obj <.roo file path> <texture directory path> <output directory path>
 ```
-The texture directory path should be a folder that contains all the tile BGF files, but upacked into pngs and json (use bgf2png for this). 
+The texture directory path should be a folder that contains all the "grdXXXXX.bgf" BGF files, but upacked into pngs and json (use bgf2png for this). 
 
 When finished, the program will output the OBJ and MTL files to the specified output directory.
 ## Texture Directory
