@@ -24,4 +24,4 @@ The MTL file uses this directory to locate textures for mesh faces. A script is 
 ```
 When finished, the script should output a directory called "textures" in the same directory.
 ## Importing into Blender
-There are some visual issues when directly importing the OBJ files in Blender. To fix this, open the Scripts tab and copy the code from scripts/blender_fixes.py, and run it. The script adjusts materials with transparency so they render properly, switches texture sampling to nearest neighbor for a sharper pixelated look, and enables backface culling.
+There are some visual issues when directly importing the OBJ files in Blender. To fix this, open the Scripts tab and copy the code from ```scripts/blender_fixes.py```, and run it. The script adjusts materials with transparency so they render properly, switches texture sampling to nearest neighbor for a sharper pixelated look, and enables backface culling.
