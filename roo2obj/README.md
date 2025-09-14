@@ -33,6 +33,6 @@ The exported OBJ has some quirks: the units are very large, the forward axis is 
 
 The python script adjusts materials with transparency so they render properly, switches texture sampling to nearest neighbor for a sharper pixelated look, and enables backface culling.
 ## Notes on Textures
-If textures fail to render, it’s usually because the paths in the generated MTL file don’t match the actual texture directory. The MTL expects texture paths to be relative to the OBJ file, so Blender may fail to find them if the directory structure isn’t aligned.
+If textures fail to render, it’s usually because the paths in the generated MTL file don’t match the actual texture directory. The MTL file expects texture paths to be relative to its location, so Blender may fail to find them if the directory structure isn’t aligned.
 
 This workaround is only meant for viewing or exporting in Blender and shouldn’t be used for distribution. A better long-term solution is to export to a modern format like glTF (which supports embedded textures), or to ensure the MTL file uses correct relative paths.
