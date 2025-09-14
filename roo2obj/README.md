@@ -30,9 +30,8 @@ The exported OBJ has some quirks: the units are very large, the forward axis is 
 - Set **Y** as the forward axis and **Z** as the up axis, then press *Import*.
 - In the object properties, set **Scale X** to negative (this flips the model).
 - Switch to the *Scripting* tab, create a new script, and paste in the contents of `scripts/blender_fixes.py`. Run the script.
-
 The python script adjusts materials with transparency so they render properly, switches texture sampling to nearest neighbor for a sharper pixelated look, and enables backface culling.
 ## Notes on Textures
 If textures fail to render, it’s usually because the paths in the generated MTL file don’t match the actual texture directory. The MTL file expects texture paths to be relative to its location, so Blender may fail to find them if the directory structure isn’t aligned.
 
-This workaround is only meant for viewing or exporting in Blender and shouldn’t be used for distribution. A better long-term solution is to export to a modern format like glTF (which supports embedded textures), or to ensure the MTL file uses correct relative paths.
+As a quick workaround, run `roo2obj` with an **absolute path** to the texture directory as the second argument. This ensures the MTL points directly to the correct files and makes Blender load the textures reliably. This workaround is only meant for viewing or exporting in Blender and shouldn’t be used for distribution. A better long-term solution is to export to a modern format like glTF (which supports embedded textures), or to ensure the MTL file uses correct relative paths.
