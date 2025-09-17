@@ -15,3 +15,5 @@ From the build directory, run:
 ./bgf2png <path to bgf file>
 ```
 When finished, the program will output the PNG and JSON files in the same directory.
+## TODO
+- For bgf files that contain more than 1 image, output one image as texture atlas. Always output 1 image.
