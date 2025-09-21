@@ -1,5 +1,5 @@
 # bgf2png
-This program converts a BGF file into a set of PNGs. The program also outputs a JSON file with metadata such as shrink_factor, sprite and group counts, and the dimentions, offset, and hotspots of each image.
+This program converts a BGF file into a PNG texture atlas. The program also outputs a JSON file with metadata such as shrink_factor, sprite and group counts, and the location, dimentions, offset, and hotspots of each image.
 ## Installation
 You’ll need to build from source. First, install CMake and its dependencies. Then, in this directory, run:
 ```
@@ -15,5 +15,3 @@ From the build directory, run:
 ./bgf2png <path to bgf file>
 ```
 When finished, the program will output the PNG and JSON files in the same directory.
-## TODO
-- For bgf files that contain more than 1 image, output one image as texture atlas. Always output 1 image.
