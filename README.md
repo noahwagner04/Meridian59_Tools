@@ -2,7 +2,7 @@
 A collection of useful tools for Meridian 59. Currently, two asset converter tools are included. The intended use is to convert meridian 59 resource files into modern formats to be used in any modern game engine or editor.
 ## Tools
 ### bgf2png
-Converts a .bgf file into a set of pngs and a json file for meta data. For more information, head to bgf2png/README.md.
+Converts a .bgf file into a png and a json file for meta data. For more information, head to bgf2png/README.md.
 ### roo2obj
 Converts a .roo file into a 3d mesh, outputing a .obj and .mtl file. For more information, head to roo2obj/README.md.
 ## The Meridian 59 Resource Folder
