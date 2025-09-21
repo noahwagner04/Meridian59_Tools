@@ -493,9 +493,9 @@ int main(int argc, char **argv)
 
 	load_bgf();
 
-	printf("Converting bitmaps to PNG atlas...\n");
 	struct bitmap b = { 0 };
 	if (bitmap_count > 1) {
+		printf("Converting bitmaps to PNG atlas...\n");
 		if (pack_bitmaps(&b) == -1) {
 			fprintf(stderr, "%s%s",
 				"Error: Failed to pack bitmaps,",
@@ -504,6 +504,7 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 	} else {
+		printf("Converting bitmap to PNG...\n");
 		b = bitmaps[0];
 	}
 
