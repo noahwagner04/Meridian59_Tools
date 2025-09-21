@@ -49,6 +49,7 @@ add_executable(bgf2png bgf2png.c)
 target_link_libraries(bgf2png PRIVATE png_static zlibstatic)
 
 target_include_directories(bgf2png PRIVATE
+	${CMAKE_SOURCE_DIR}
 	"${zlib_SOURCE_DIR}" "${zlib_BINARY_DIR}"
 	"${libpng_SOURCE_DIR}" "${libpng_BINARY_DIR}"
 )

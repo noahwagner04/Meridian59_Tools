@@ -8,10 +8,16 @@
 #include "zlib.h"
 #include "png.h"
 
+#define STB_RECT_PACK_IMPLEMENTATION
+#include "stb_rect_pack.h"
+
 // CONSTANTS
 #define COMPRESSED 1
 #define TRANSPARENT_INDEX 254
 #define BGF_VERSION 10
+
+#define ATLAS_PAD 1
+#define ATLAS_MAX_DIM 4096
 
 // BGF VARIABLES TO BE FILLED
 uint32_t version = 0;
@@ -73,7 +79,7 @@ struct hotspot {
 };
 
 struct bitmap {
-	char *png_name;
+	int x_pos, y_pos;
 	int32_t width, height;
 	int32_t x_offset, y_offset;
 	uint8_t hotspot_count;
@@ -95,8 +101,6 @@ void cleanup()
 				free(bitmaps[i].hotspots);
 			if (bitmaps[i].image_bytes)
 				free(bitmaps[i].image_bytes);
-			if (bitmaps[i].png_name)
-				free(bitmaps[i].png_name);
 		}
 		free(bitmaps);
 	}
@@ -125,6 +129,9 @@ int load_bgf_bytes(void *dest, size_t byte_count)
 
 void load_bitmap(struct bitmap *bitmap)
 {
+	bitmap->x_pos = 0;
+	bitmap->y_pos = 0;
+
 	// load header information
 	load_bgf_bytes(&bitmap->width, sizeof(bitmap->width));
 	load_bgf_bytes(&bitmap->height, sizeof(bitmap->height));
@@ -289,7 +296,7 @@ int write_png(char *file_name, struct bitmap *bitmap)
 
 	png_set_PLTE(png_ptr, info_ptr, palette, 256);
 
-	uint8_t **row_pointers = malloc(sizeof(char *) * bitmap->height);
+	uint8_t **row_pointers = malloc(sizeof(uint8_t *) * bitmap->height);
 
 	for (int i = 0; i < bitmap->height; i++) {
 		row_pointers[i] = bitmap->image_bytes + bitmap->width * i;
@@ -307,6 +314,85 @@ int write_png(char *file_name, struct bitmap *bitmap)
 	return 0;
 }
 
+int pack_rects()
+{
+	struct stbrp_rect *rects = malloc(sizeof(*rects) * bitmap_count);
+	for (int i = 0; i < bitmap_count; i++) {
+		struct stbrp_rect *r = &rects[i];
+		r->w = bitmaps[i].width + ATLAS_PAD * 2;
+		r->h = bitmaps[i].height + ATLAS_PAD * 2;
+	}
+
+	int dim = 256;
+	int result = 0;
+	while (dim < ATLAS_MAX_DIM) {
+		struct stbrp_context ctx;
+		struct stbrp_node *nodes = malloc(sizeof(*nodes) * dim);
+		stbrp_init_target(&ctx, dim, dim, nodes, dim);
+		result = stbrp_pack_rects(&ctx, rects, bitmap_count);
+		free(nodes);
+		if (result) {
+			break;
+		}
+		dim *= 2;
+	}
+
+	if (!result) {
+		free(rects);
+		return -1;
+	}
+
+	for (int i = 0; i < bitmap_count; i++) {
+		struct stbrp_rect *r = &rects[i];
+		bitmaps[i].x_pos = r->x + ATLAS_PAD;
+		bitmaps[i].y_pos = r->y + ATLAS_PAD;
+	}
+
+	free(rects);
+	return 0;
+}
+
+int pack_bitmaps(struct bitmap *b)
+{
+	if (pack_rects() == -1) {
+		return -1;
+	}
+	int max_width = 0;
+	int max_height = 0;
+	for (int i = 0; i < bitmap_count; i++) {
+		struct bitmap *bm = &bitmaps[i];
+		int width = bm->x_pos + bm->width + ATLAS_PAD;
+		int height = bm->y_pos + bm->height + ATLAS_PAD;
+		if (width > max_width)
+			max_width = width;
+		if (height > max_height)
+			max_height = height;
+	}
+	b->width = max_width;
+	b->height = max_height;
+	b->image_bytes = malloc(max_width * max_height);
+	memset(b->image_bytes, TRANSPARENT_INDEX, max_width * max_height);
+
+	for (int i = 0; i < bitmap_count; i++) {
+		struct bitmap *bm = &bitmaps[i];
+
+		int x = bm->x_pos;
+		int y = bm->y_pos;
+		int w = bm->width;
+		int h = bm->height;
+
+		uint8_t *bp = bm->image_bytes;
+		uint8_t *ap = b->image_bytes;
+		for (int r = 0; r < h; r++) {
+			uint8_t *src = &bp[r * w];
+			uint8_t *dst = &ap[x + (y + r) * b->width];
+			memcpy(dst, src, w);
+		}
+	}
+	return 0;
+}
+
+// add bitmap atlas location info: x, y
 // return 0 on success, -1 on failure
 int export_metadata(char *file_name)
 {
@@ -329,13 +415,12 @@ int export_metadata(char *file_name)
 	for (int i = 0; i < bitmap_count; i++) {
 		struct bitmap *bitmap = bitmaps + i;
 		fprintf(fp, "\t\t{\n");
-		fprintf(fp, "\t\t\t\"file_name\": \"%s\",\n", bitmap->png_name);
+		fprintf(fp, "\t\t\t\"x_pos\": %d,\n", bitmap->x_pos);
+		fprintf(fp, "\t\t\t\"y_pos\": %d,\n", bitmap->y_pos);
 		fprintf(fp, "\t\t\t\"width\": %d,\n", bitmap->width);
 		fprintf(fp, "\t\t\t\"height\": %d,\n", bitmap->height);
-		fprintf(fp, "\t\t\t\"offset\": {\n");
-		fprintf(fp, "\t\t\t\t\"x\": %d,\n", bitmap->x_offset);
-		fprintf(fp, "\t\t\t\t\"y\": %d\n", bitmap->y_offset);
-		fprintf(fp, "\t\t\t},\n");
+		fprintf(fp, "\t\t\t\"x_offset\": %d,\n", bitmap->x_offset);
+		fprintf(fp, "\t\t\t\"y_offset\": %d,\n", bitmap->y_offset);
 		fprintf(fp, "\t\t\t\"hotspot_count\": %d,\n",
 			bitmap->hotspot_count);
 		fprintf(fp, "\t\t\t\"hotspots\": [\n");
@@ -344,10 +429,8 @@ int export_metadata(char *file_name)
 			fprintf(fp, "\t\t\t\t{\n");
 			fprintf(fp, "\t\t\t\t\t\"number\": %d,\n",
 				hotspot->number);
-			fprintf(fp, "\t\t\t\t\t\"location\": {\n");
-			fprintf(fp, "\t\t\t\t\t\t\"x\": %d,\n", hotspot->x);
-			fprintf(fp, "\t\t\t\t\t\t\"y\": %d\n", hotspot->y);
-			fprintf(fp, "\t\t\t\t\t}\n");
+			fprintf(fp, "\t\t\t\t\t\"x\": %d,\n", hotspot->x);
+			fprintf(fp, "\t\t\t\t\t\"y\": %d\n", hotspot->y);
 			if (j == bitmap->hotspot_count - 1) {
 				fprintf(fp, "\t\t\t\t}\n");
 			} else {
@@ -410,22 +493,35 @@ int main(int argc, char **argv)
 
 	load_bgf();
 
-	printf("Converting bitmaps to PNGs...\n");
-
-	for (int i = 0; i < bitmap_count; i++) {
-		size_t name_length = strlen(basename(argv[1])) + 5;
-		char *png_name = malloc(name_length);
-		strcpy(png_name, basename(argv[1]));
-		char *dot_loc = strrchr(png_name, '.');
-		if (dot_loc) {
-			sprintf(dot_loc, "%d%s", i, ".png");
-		} else {
-			memset(png_name, '\0', name_length);
-			sprintf(png_name, "%s%d%s", basename(argv[1]), i,
-				".png");
+	printf("Converting bitmaps to PNG atlas...\n");
+	struct bitmap b = { 0 };
+	if (bitmap_count > 1) {
+		if (pack_bitmaps(&b) == -1) {
+			fprintf(stderr, "%s%s",
+				"Error: Failed to pack bitmaps,",
+				" try increasing ATLAS_MAX_DIM\n");
+			cleanup();
+			return EXIT_FAILURE;
 		}
-		write_png(png_name, bitmaps + i);
-		bitmaps[i].png_name = png_name;
+	} else {
+		b = bitmaps[0];
+	}
+
+	size_t name_length = strlen(basename(argv[1])) + 5;
+	char *png_name = malloc(name_length * sizeof(char));
+	strcpy(png_name, basename(argv[1]));
+	char *dot_loc = strrchr(png_name, '.');
+	if (dot_loc) {
+		sprintf(dot_loc, ".png");
+	} else {
+		strcat(png_name, ".png");
+	}
+	write_png(png_name, &b);
+	free(png_name);
+
+	// b is the image atlas in this case, needs manual free
+	if (bitmap_count != 1) {
+		free(b.image_bytes);
 	}
 
 	// manually export meta data to json file
@@ -433,9 +529,9 @@ int main(int argc, char **argv)
 
 	char *json_name = malloc(strlen(basename(argv[1])) + 6);
 	strcpy(json_name, basename(argv[1]));
-	char *dot_loc = strrchr(json_name, '.');
+	dot_loc = strrchr(json_name, '.');
 	if (dot_loc) {
-		sprintf(dot_loc, "%s", ".json");
+		sprintf(dot_loc, ".json");
 	} else {
 		strcat(json_name, ".json");
 	}
