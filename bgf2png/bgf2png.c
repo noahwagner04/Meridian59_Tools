@@ -480,8 +480,6 @@ int main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Unpacking %s\n", argv[1]);
-
 	// open bgf file
 	bgf_file = fopen(argv[1], "r");
 
@@ -490,6 +488,8 @@ int main(int argc, char **argv)
 			strerror(errno));
 		return EXIT_FAILURE;
 	}
+
+	printf("Unpacking %s\n", argv[1]);
 
 	load_bgf();
 
