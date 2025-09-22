@@ -392,7 +392,6 @@ int pack_bitmaps(struct bitmap *b)
 	return 0;
 }
 
-// add bitmap atlas location info: x, y
 // return 0 on success, -1 on failure
 int export_metadata(char *json_file_name, char *png_file_name)
 {
