@@ -394,13 +394,13 @@ int pack_bitmaps(struct bitmap *b)
 
 // add bitmap atlas location info: x, y
 // return 0 on success, -1 on failure
-int export_metadata(char *file_name)
+int export_metadata(char *json_file_name, char *png_file_name)
 {
-	FILE *fp = fopen(file_name, "w");
+	FILE *fp = fopen(json_file_name, "w");
 
 	if (!fp) {
 		fprintf(stderr, "Error: Failed to create json %s: %s\n",
-			file_name, strerror(errno));
+			json_file_name, strerror(errno));
 		return -1;
 	}
 
@@ -410,6 +410,7 @@ int export_metadata(char *file_name)
 	fprintf(fp, "\t\"sprite_count\": %d,\n", bitmap_count);
 	fprintf(fp, "\t\"group_count\": %d,\n", group_count);
 	fprintf(fp, "\t\"shrink_factor\": %d,\n", shrink_factor);
+	fprintf(fp, "\t\"image_file\": %s,\n", png_file_name);
 	fprintf(fp, "\t\"sprites\": [\n");
 
 	for (int i = 0; i < bitmap_count; i++) {
@@ -518,7 +519,6 @@ int main(int argc, char **argv)
 		strcat(png_name, ".png");
 	}
 	write_png(png_name, &b);
-	free(png_name);
 
 	// b is the image atlas in this case, needs manual free
 	if (bitmap_count != 1) {
@@ -536,9 +536,10 @@ int main(int argc, char **argv)
 	} else {
 		strcat(json_name, ".json");
 	}
-	export_metadata(json_name);
-	free(json_name);
+	export_metadata(json_name, png_name);
 
+	free(json_name);
+	free(png_name);
 	cleanup();
 	printf("%s successfully unpacked\n", argv[1]);
 	return EXIT_SUCCESS;
