@@ -36,3 +36,5 @@ The python script adjusts materials with transparency so they render properly, s
 If textures fail to render, it’s usually because the paths in the generated MTL file don’t match the actual texture directory. The MTL file expects texture paths to be relative to its location, so Blender may fail to find them if the directory structure isn’t aligned.
 
 As a quick workaround, run `roo2obj` with an **absolute path** to the texture directory as the second argument. This ensures the MTL points directly to the correct files and makes Blender load the textures reliably. This workaround is only meant for viewing or exporting in Blender and shouldn’t be used for distribution. A better long-term solution is to export to a modern format like glTF (which supports embedded textures), or to ensure the MTL file uses correct relative paths.
+## TODO
+- Scale model by 1/1024, set Y as forward, Z as up, and scale X by -1 in the roo2obj executable. This avoids the user having to do it in blender.
