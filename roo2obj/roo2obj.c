@@ -1283,18 +1283,18 @@ void meshify_wall_face(struct wall_3d *wall_3d, int side, int face,
 
 	if (side == SD_POS) {
 		indices[0] = 0;
-		indices[1] = 1;
-		indices[2] = 2;
+		indices[1] = 2;
+		indices[2] = 1;
 		indices[3] = 0;
-		indices[4] = 2;
-		indices[5] = 3;
+		indices[4] = 3;
+		indices[5] = 2;
 	} else {
 		indices[0] = 0;
-		indices[1] = 3;
-		indices[2] = 2;
+		indices[1] = 2;
+		indices[2] = 3;
 		indices[3] = 0;
-		indices[4] = 2;
-		indices[5] = 1;
+		indices[4] = 1;
+		indices[5] = 2;
 	}
 
 	// x and y texture offsets, y_offset is needed to clip wall height in no_v_tile case
@@ -1546,12 +1546,12 @@ void meshify_subsector_plane(struct subsector *subsector, int is_floor,
 	for (int i = 0; i < out->triangle_count; i++) {
 		if (is_floor) {
 			out->indices[i * 3 + 0] = 0;
-			out->indices[i * 3 + 1] = i + 1;
-			out->indices[i * 3 + 2] = i + 2;
-		} else {
-			out->indices[i * 3 + 0] = 0;
 			out->indices[i * 3 + 1] = i + 2;
 			out->indices[i * 3 + 2] = i + 1;
+		} else {
+			out->indices[i * 3 + 0] = 0;
+			out->indices[i * 3 + 1] = i + 1;
+			out->indices[i * 3 + 2] = i + 2;
 		}
 	}
 
@@ -1594,6 +1594,8 @@ void meshify_subsector_plane(struct subsector *subsector, int is_floor,
 		z_origin = get_floor_height(sector, x_origin, y_origin);
 	else
 		z_origin = get_ceiling_height(sector, x_origin, y_origin);
+
+	z_origin /= FINENESS;
 
 	// NOTE: i'm not sure if floor/ceiling textures are transposed
 
@@ -1758,7 +1760,8 @@ void to_obj(char **argv)
 			float *x = dynamic_array_get(&mesh->positions, p + 0);
 			float *y = dynamic_array_get(&mesh->positions, p + 1);
 			float *z = dynamic_array_get(&mesh->positions, p + 2);
-			fprintf(obj_file, "v %f %f %f\n", *x, *y, *z);
+			fprintf(obj_file, "v %f %f %f\n", *x / FINENESS * -1,
+				*z / FINENESS, *y / FINENESS * -1);
 		}
 	}
 
@@ -1779,7 +1782,7 @@ void to_obj(char **argv)
 			float *x = dynamic_array_get(&mesh->normals, n + 0);
 			float *y = dynamic_array_get(&mesh->normals, n + 1);
 			float *z = dynamic_array_get(&mesh->normals, n + 2);
-			fprintf(obj_file, "vn %f %f %f\n", *x, *y, *z);
+			fprintf(obj_file, "vn %f %f %f\n", *x * -1, *z, *y);
 		}
 	}
 
