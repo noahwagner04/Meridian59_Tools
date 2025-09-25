@@ -1364,7 +1364,7 @@ void meshify_wall_face(struct wall_3d *wall_3d, int side, int face,
 	normal[1] = -btw_x / btw_length;
 	normal[2] = 0;
 
-	if (side == SD_NEG) {
+	if (side == SD_POS) {
 		normal[0] *= -1;
 		normal[1] *= -1;
 	}
@@ -1731,6 +1731,10 @@ char *cat_dir_base(char *dir, char *base)
 }
 
 // output a obj and mtl file
+/*
+ * Positions and normals are transformed to make the forward axis -Z and 
+ * upward axis Y. The model is also flipped to match the in-game geometry.
+ */
 void to_obj(char **argv)
 {
 	char *roo_name = basename(argv[1]);
@@ -1782,7 +1786,7 @@ void to_obj(char **argv)
 			float *x = dynamic_array_get(&mesh->normals, n + 0);
 			float *y = dynamic_array_get(&mesh->normals, n + 1);
 			float *z = dynamic_array_get(&mesh->normals, n + 2);
-			fprintf(obj_file, "vn %f %f %f\n", *x * -1, *z, *y);
+			fprintf(obj_file, "vn %f %f %f\n", *x * -1, *z, *y * -1);
 		}
 	}
 
