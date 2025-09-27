@@ -4,3 +4,4 @@ This project includes and modifies portions of the Meridian 59 source code.
 Adapted code:
 - BGF load functions from makebgf
 - ROO load functions from roomeditor
+- Several functions / code blocks from drawbsp.c and bspload.c
