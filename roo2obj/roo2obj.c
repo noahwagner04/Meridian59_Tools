@@ -1578,16 +1578,16 @@ void meshify_subsector_plane(struct subsector *subsector, int is_floor,
 	if (!mesh_obj->material.is_valid)
 		return;
 
-	uint32_t tex_width = mesh_obj->material.tex_width;
-	uint32_t tex_height = mesh_obj->material.tex_height;
+	float tex_width = mesh_obj->material.tex_width;
+	float tex_height = mesh_obj->material.tex_height;
 
 	// get texture pixel offset
-	uint16_t u_offset = sector->x_tex_offset / tex_height;
-	uint16_t v_offset = sector->y_tex_offset / tex_width;
+	float u_offset = sector->x_tex_offset / tex_width;
+	float v_offset = sector->y_tex_offset / tex_height;
 
 	// set default texture orientation (no slope)
-	float x_origin = slope ? slope->tex_origin.x / FINENESS : 0;
-	float y_origin = slope ? slope->tex_origin.y / FINENESS : 0;
+	float x_origin = slope ? slope->tex_origin.x : 0;
+	float y_origin = slope ? slope->tex_origin.y : 0;
 	float z_origin;
 
 	if (is_floor)
@@ -1595,6 +1595,8 @@ void meshify_subsector_plane(struct subsector *subsector, int is_floor,
 	else
 		z_origin = get_ceiling_height(sector, x_origin, y_origin);
 
+	x_origin /= FINENESS;
+	y_origin /= FINENESS;
 	z_origin /= FINENESS;
 
 	// NOTE: i'm not sure if floor/ceiling textures are transposed
@@ -1609,7 +1611,7 @@ void meshify_subsector_plane(struct subsector *subsector, int is_floor,
 	float v_y = 1;
 	float v_z = 0;
 
-	// normal vector to plane (assumed to be flat for now)
+	// normal vector to plane
 	float n_x = out->normal[0];
 	float n_y = out->normal[1];
 	float n_z = out->normal[2];
@@ -1632,9 +1634,9 @@ void meshify_subsector_plane(struct subsector *subsector, int is_floor,
 		u_z = (v_x * n_y) - (v_y * n_x);
 
 		// normalize n, v, and u
-		float n_length = sqrt(n_x * n_x + n_y * n_y + n_z * n_z);
 		float v_length = sqrt(v_x * v_x + v_y * v_y + v_z * v_z);
 		float u_length = sqrt(u_x * u_x + u_y * u_y + u_z * u_z);
+		float n_length = sqrt(n_x * n_x + n_y * n_y + n_z * n_z);
 
 		out->normal[0] = n_x / n_length;
 		out->normal[1] = n_y / n_length;
