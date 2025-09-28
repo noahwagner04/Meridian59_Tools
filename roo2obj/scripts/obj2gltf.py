@@ -1,0 +1,43 @@
+import bpy
+import os
+import sys
+
+# Path to your directory containing the OBJ files
+OBJ_DIR = "../test/objs"
+# Path to the directory where you want the GLTF files saved
+OUT_DIR = "../test/gltf"
+
+# Import your custom fix script as a module
+# Make sure it's in the same directory or add to sys.path
+sys.path.append(os.path.dirname(__file__))
+import fix_script   # <-- replace with the actual filename (without .py)
+
+def clear_scene():
+    # Remove all objects, meshes, materials etc. before next import
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+
+def convert_obj_to_gltf(obj_path, gltf_path):
+    clear_scene()
+    # Import OBJ
+    bpy.ops.import_scene.obj(filepath=obj_path)
+
+    # Run your fix routine
+    fix_script.run()  # assumes your script has a `run()` function
+
+    # Export to GLTF (embedded or separate)
+    bpy.ops.export_scene.gltf(filepath=gltf_path, export_format='GLTF_SEPARATE')
+
+def main():
+    if not os.path.exists(OUT_DIR):
+        os.makedirs(OUT_DIR)
+
+    for fname in os.listdir(OBJ_DIR):
+        if fname.lower().endswith(".obj"):
+            obj_path = os.path.join(OBJ_DIR, fname)
+            out_name = os.path.splitext(fname)[0] + ".gltf"
+            gltf_path = os.path.join(OUT_DIR, out_name)
+            print(f"Converting {obj_path} -> {gltf_path}")
+            convert_obj_to_gltf(obj_path, gltf_path)
+
+if __name__ == "__main__":
+    main()

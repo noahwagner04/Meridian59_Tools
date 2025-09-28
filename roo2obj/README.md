@@ -24,12 +24,7 @@ The MTL file uses this directory to locate textures for mesh faces. A script is 
 ```
 When finished, the script should output a directory called "textures" in the same directory.
 ## Importing into Blender
-The exported OBJ has some quirks: the units are very large, the forward axis is Y, the up axis is Z, and the orientation is mirrored compared to how the ROO file appears in-game. To get it looking correct in Blender:
-- Drag and drop the OBJ into Blender.
-- In the import menu, set the scale to around **0.001**.
-- Set **Y** as the forward axis and **Z** as the up axis, then press *Import*.
-- In the object properties, set **Scale X** to negative (this flips the model).
-- Switch to the *Scripting* tab, create a new script, and paste in the contents of `scripts/blender_fixes.py`. Run the script.
+The exported OBJ has some quirks: textures use bilinear interpolation by default, back-face culling is not enabled, and transparent textures don't render the alpha channel properly. To fix this, switch to the *Scripting* tab, create a new script, and paste in the contents of `scripts/blender_fixes.py`. Then run the script.
 
 The python script adjusts materials with transparency so they render properly, switches texture sampling to nearest neighbor for a sharper pixelated look, and enables backface culling.
 ## Notes on Textures

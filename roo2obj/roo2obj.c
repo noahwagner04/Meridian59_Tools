@@ -271,6 +271,7 @@ void set_material_info(char *json_file_path, struct material *mat)
 	}
 
 	shrink_factor = json_object_get(root, "shrink_factor");
+	file_name = json_object_get(root, "image_file");
 	sprites = json_object_get(root, "sprites");
 
 	if (!json_is_integer(shrink_factor) || !json_is_array(sprites)) {
@@ -290,7 +291,6 @@ void set_material_info(char *json_file_path, struct material *mat)
 		goto invalid;
 	}
 
-	file_name = json_object_get(texture, "file_name");
 	width = json_object_get(texture, "width");
 	height = json_object_get(texture, "height");
 
