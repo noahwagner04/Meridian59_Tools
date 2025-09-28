@@ -409,7 +409,7 @@ int export_metadata(char *json_file_name, char *png_file_name)
 	fprintf(fp, "\t\"sprite_count\": %d,\n", bitmap_count);
 	fprintf(fp, "\t\"group_count\": %d,\n", group_count);
 	fprintf(fp, "\t\"shrink_factor\": %d,\n", shrink_factor);
-	fprintf(fp, "\t\"image_file\": %s,\n", png_file_name);
+	fprintf(fp, "\t\"image_file\": \"%s\",\n", png_file_name);
 	fprintf(fp, "\t\"sprites\": [\n");
 
 	for (int i = 0; i < bitmap_count; i++) {
