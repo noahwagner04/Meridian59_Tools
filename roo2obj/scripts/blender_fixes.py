@@ -41,42 +41,46 @@ def ensure_math_node(mat):
     # Optional: place near Principled (simple offset)
     return n
 
-for mat in bpy.data.materials:
-    if not mat.use_nodes:
-        continue
-
-    principled = find_principled(mat)
-    if not principled:
-        continue
-
-    alpha_in = principled.inputs.get('Alpha')
-    if not alpha_in:
-        continue
-    if alpha_in.is_linked and not FORCE_REWIRE:
-        continue
-
-    img = pick_image_node(mat)
-    if not img or 'Alpha' not in img.outputs:
-        continue
-
-    math_node = ensure_math_node(mat)
-    nt, links = mat.node_tree, mat.node_tree.links
-
-    if FORCE_REWIRE:
-        while alpha_in.is_linked:
-            nt.links.remove(alpha_in.links[0])
-
-    if not math_node.inputs[0].is_linked:
-        links.new(img.outputs['Alpha'], math_node.inputs[0])
-    if not alpha_in.is_linked:
-        links.new(math_node.outputs[0], alpha_in)
-
-    # EEVEE Next: Render Method replaces old Blend Mode
-    mat.surface_render_method = 'DITHERED'   # or 'BLENDED' for alpha blend
-    mat.use_transparent_shadow = True
+def run():
+    for mat in bpy.data.materials:
+        if not mat.use_nodes:
+            continue
     
-    for node in mat.node_tree.nodes:
-        if node.type == "TEX_IMAGE" and node.image is not None:
-            node.interpolation = 'Closest'
+        principled = find_principled(mat)
+        if not principled:
+            continue
+    
+        alpha_in = principled.inputs.get('Alpha')
+        if not alpha_in:
+            continue
+        if alpha_in.is_linked and not FORCE_REWIRE:
+            continue
+    
+        img = pick_image_node(mat)
+        if not img or 'Alpha' not in img.outputs:
+            continue
+    
+        math_node = ensure_math_node(mat)
+        nt, links = mat.node_tree, mat.node_tree.links
+    
+        if FORCE_REWIRE:
+            while alpha_in.is_linked:
+                nt.links.remove(alpha_in.links[0])
+    
+        if not math_node.inputs[0].is_linked:
+            links.new(img.outputs['Alpha'], math_node.inputs[0])
+        if not alpha_in.is_linked:
+            links.new(math_node.outputs[0], alpha_in)
+    
+        # EEVEE Next: Render Method replaces old Blend Mode
+        mat.surface_render_method = 'DITHERED'   # or 'BLENDED' for alpha blend
+        mat.use_transparent_shadow = True
+        
+        for node in mat.node_tree.nodes:
+            if node.type == "TEX_IMAGE" and node.image is not None:
+                node.interpolation = 'Closest'
+    
+        mat.use_backface_culling = True 
 
-    mat.use_backface_culling = True
+if __name__ == "__main__":
+    run()
