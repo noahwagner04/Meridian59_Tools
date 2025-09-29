@@ -27,7 +27,7 @@ def convert_obj_to_gltf(obj_path, gltf_path):
     blender_fixes.run()  # assumes your script has a `run()` function
 
     # Export to GLTF (embedded or separate)
-    bpy.ops.export_scene.gltf(filepath=gltf_path, export_format='GLB')
+    bpy.ops.export_scene.gltf(filepath=gltf_path, export_format='GLTF_SEPARATE', export_texture_dir="textures")
 
 def main():
     if not os.path.exists(OUT_DIR):
