@@ -1186,8 +1186,8 @@ void transform_wall(struct wall *wall, struct wall_3d *wall_3d)
 }
 
 // face int is face type, side is pos or neg, face struct holds mesh info
-void meshify_wall_face(struct wall *wall, struct wall_3d *wall_3d, int side, int face,
-		       struct mesh_face *out)
+void meshify_wall_face(struct wall *wall, struct wall_3d *wall_3d, int side,
+		       int face, struct mesh_face *out)
 {
 	struct sidedef *sidedef;
 	uint16_t bitmap_num = 0;
@@ -1222,9 +1222,9 @@ void meshify_wall_face(struct wall *wall, struct wall_3d *wall_3d, int side, int
 	int top_down = 0;
 	int no_v_tile = sidedef->wall_flags & WF_NO_VTILE;
 
-	if ((face == FC_BELOW && (sidedef->wall_flags & WF_BELOW_TOPDOWN)) || 
-		(face == FC_NORMAL && (sidedef->wall_flags & WF_NORMAL_TOPDOWN)) || 
-		(face == FC_ABOVE && !(sidedef->wall_flags & WF_ABOVE_BOTTOMUP))) {
+	if ((face == FC_BELOW && (sidedef->wall_flags & WF_BELOW_TOPDOWN)) ||
+	    (face == FC_NORMAL && (sidedef->wall_flags & WF_NORMAL_TOPDOWN)) ||
+	    (face == FC_ABOVE && !(sidedef->wall_flags & WF_ABOVE_BOTTOMUP))) {
 		top_down = 1;
 	}
 
@@ -1323,9 +1323,6 @@ void meshify_wall_face(struct wall *wall, struct wall_3d *wall_3d, int side, int
 
 	// clamp verticies depending on no vertical tile flag (only for normal walls)
 	if (no_v_tile && face == FC_NORMAL) {
-		if (wall == &walls[633]) {
-			printf("BEFORE: %f %f %f %f\n", z00, z01, z10, z11);
-		}
 		float max_height =
 			(tex_height - y_offset) / BITMAP_WIDTH * FINENESS;
 		if (top_down) {
@@ -1342,9 +1339,6 @@ void meshify_wall_face(struct wall *wall, struct wall_3d *wall_3d, int side, int
 
 			if (z11 - z10 > max_height)
 				z11 = z10 + max_height;
-			if (wall == &walls[633]) {
-				printf("AFTER: %f %f %f %f\n", z00, z01, z10, z11);
-			}
 		}
 	}
 
@@ -1481,7 +1475,8 @@ void meshify_wall(struct wall *wall)
 	}
 
 	if (wall_3d.pos_normal_is_visible) {
-		meshify_wall_face(wall, &wall_3d, SD_POS, FC_NORMAL, &mesh_face);
+		meshify_wall_face(wall, &wall_3d, SD_POS, FC_NORMAL,
+				  &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 
@@ -1496,7 +1491,8 @@ void meshify_wall(struct wall *wall)
 	}
 
 	if (wall_3d.neg_normal_is_visible) {
-		meshify_wall_face(wall, &wall_3d, SD_NEG, FC_NORMAL, &mesh_face);
+		meshify_wall_face(wall, &wall_3d, SD_NEG, FC_NORMAL,
+				  &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 }
@@ -1791,7 +1787,8 @@ void to_obj(char **argv)
 			float *x = dynamic_array_get(&mesh->normals, n + 0);
 			float *y = dynamic_array_get(&mesh->normals, n + 1);
 			float *z = dynamic_array_get(&mesh->normals, n + 2);
-			fprintf(obj_file, "vn %f %f %f\n", *x * -1, *z, *y * -1);
+			fprintf(obj_file, "vn %f %f %f\n", *x * -1, *z,
+				*y * -1);
 		}
 	}
 
