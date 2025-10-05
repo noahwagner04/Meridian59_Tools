@@ -1186,7 +1186,7 @@ void transform_wall(struct wall *wall, struct wall_3d *wall_3d)
 }
 
 // face int is face type, side is pos or neg, face struct holds mesh info
-void meshify_wall_face(struct wall_3d *wall_3d, int side, int face,
+void meshify_wall_face(struct wall *wall, struct wall_3d *wall_3d, int side, int face,
 		       struct mesh_face *out)
 {
 	struct sidedef *sidedef;
@@ -1219,8 +1219,14 @@ void meshify_wall_face(struct wall_3d *wall_3d, int side, int face,
 
 	// texture mapping flags
 	int flip_h = sidedef->wall_flags & WF_BACKWARDS;
-	int top_down = sidedef->wall_flags & WF_BELOW_TOPDOWN;
+	int top_down = 0;
 	int no_v_tile = sidedef->wall_flags & WF_NO_VTILE;
+
+	if ((face == FC_BELOW && (sidedef->wall_flags & WF_BELOW_TOPDOWN)) || 
+		(face == FC_NORMAL && (sidedef->wall_flags & WF_NORMAL_TOPDOWN)) || 
+		(face == FC_ABOVE && !(sidedef->wall_flags & WF_ABOVE_BOTTOMUP))) {
+		top_down = 1;
+	}
 
 	// default to below wall
 	float z00 = wall_3d->z00;
@@ -1317,6 +1323,9 @@ void meshify_wall_face(struct wall_3d *wall_3d, int side, int face,
 
 	// clamp verticies depending on no vertical tile flag (only for normal walls)
 	if (no_v_tile && face == FC_NORMAL) {
+		if (wall == &walls[633]) {
+			printf("BEFORE: %f %f %f %f\n", z00, z01, z10, z11);
+		}
 		float max_height =
 			(tex_height - y_offset) / BITMAP_WIDTH * FINENESS;
 		if (top_down) {
@@ -1333,6 +1342,9 @@ void meshify_wall_face(struct wall_3d *wall_3d, int side, int face,
 
 			if (z11 - z10 > max_height)
 				z11 = z10 + max_height;
+			if (wall == &walls[633]) {
+				printf("AFTER: %f %f %f %f\n", z00, z01, z10, z11);
+			}
 		}
 	}
 
@@ -1459,32 +1471,32 @@ void meshify_wall(struct wall *wall)
 	struct mesh_face mesh_face;
 
 	if (wall_3d.pos_below_is_visible) {
-		meshify_wall_face(&wall_3d, SD_POS, FC_BELOW, &mesh_face);
+		meshify_wall_face(wall, &wall_3d, SD_POS, FC_BELOW, &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 
 	if (wall_3d.pos_above_is_visible) {
-		meshify_wall_face(&wall_3d, SD_POS, FC_ABOVE, &mesh_face);
+		meshify_wall_face(wall, &wall_3d, SD_POS, FC_ABOVE, &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 
 	if (wall_3d.pos_normal_is_visible) {
-		meshify_wall_face(&wall_3d, SD_POS, FC_NORMAL, &mesh_face);
+		meshify_wall_face(wall, &wall_3d, SD_POS, FC_NORMAL, &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 
 	if (wall_3d.neg_below_is_visible) {
-		meshify_wall_face(&wall_3d, SD_NEG, FC_BELOW, &mesh_face);
+		meshify_wall_face(wall, &wall_3d, SD_NEG, FC_BELOW, &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 
 	if (wall_3d.neg_above_is_visible) {
-		meshify_wall_face(&wall_3d, SD_NEG, FC_ABOVE, &mesh_face);
+		meshify_wall_face(wall, &wall_3d, SD_NEG, FC_ABOVE, &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 
 	if (wall_3d.neg_normal_is_visible) {
-		meshify_wall_face(&wall_3d, SD_NEG, FC_NORMAL, &mesh_face);
+		meshify_wall_face(wall, &wall_3d, SD_NEG, FC_NORMAL, &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 }
