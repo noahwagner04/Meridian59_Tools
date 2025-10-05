@@ -1741,21 +1741,12 @@ void to_obj(char **argv)
 {
 	char *roo_name = basename(argv[1]);
 	char *tex_dir = argv[2];
-	char *output_dir = argv[3];
-	// create output_dir if doesn't exist
-	if (mkdir(output_dir, 0755) == -1 && errno != EEXIST) {
-		fprintf(stderr, "Failed to create directory %s: %s\n",
-			output_dir, strerror(errno));
-		exit(-1);
-	}
 
 	char *obj_name = change_ext(roo_name, "obj");
-	char *obj_path = cat_dir_base(output_dir, obj_name);
-	FILE *obj_file = fopen(obj_path, "w");
+	FILE *obj_file = fopen(obj_name, "w");
 
 	char *mtl_name = change_ext(roo_name, "mtl");
-	char *mtl_path = cat_dir_base(output_dir, mtl_name);
-	FILE *mtl_file = fopen(mtl_path, "w");
+	FILE *mtl_file = fopen(mtl_name, "w");
 
 	fprintf(obj_file, "mtllib %s\n", mtl_name);
 
@@ -1800,7 +1791,6 @@ void to_obj(char **argv)
 		char mat_name[10];
 		char *tex_path =
 			cat_dir_base(tex_dir, mesh->material.texture_file_path);
-		sprintf(obj_path, "%s/%s", output_dir, obj_name);
 		snprintf(mat_name, 10, "mat_%d", mesh->id);
 
 		fprintf(mtl_file, "newmtl %s\n", mat_name);
@@ -1831,15 +1821,13 @@ void to_obj(char **argv)
 	fclose(mtl_file);
 
 	free(obj_name);
-	free(obj_path);
 	free(mtl_name);
-	free(mtl_path);
 }
 
 int main(int argc, char **argv)
 {
-	if (argc < 4) {
-		printf("Usage: %s <.roo file path> <texture directory path> <output directory path>\n",
+	if (argc < 3) {
+		printf("Usage: %s <.roo file path> <texture directory path>\n",
 		       argv[0]);
 		return EXIT_SUCCESS;
 	}

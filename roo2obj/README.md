@@ -12,7 +12,7 @@ There should be a `roo2obj` executable file in the build directory if everything
 ## Usage
 From the build directory, run:
 ```
-./roo2obj <.roo file path> <texture directory path> <output directory path>
+./roo2obj <.roo file path> <texture directory path>
 ```
 The texture directory path should be a folder that contains all the "grdXXXXX.bgf" BGF files, but upacked into pngs and json (use bgf2png for this). 
 
