@@ -1165,7 +1165,7 @@ void transform_wall(struct wall *wall, struct wall_3d *wall_3d)
 		if (above_bitmap_exists && (z02 != z03 || z12 != z13))
 			wall_3d->pos_above_is_visible = 1;
 
-		if (normal_bitmap_exists && (z02 != z01 || z12 != z11))
+		if (normal_bitmap_exists && (z01 != z02 || z11 != z12))
 			wall_3d->pos_normal_is_visible = 1;
 	}
 
@@ -1180,7 +1180,7 @@ void transform_wall(struct wall *wall, struct wall_3d *wall_3d)
 		if (above_bitmap_exists && (z02 != z03 || z12 != z13))
 			wall_3d->neg_above_is_visible = 1;
 
-		if (normal_bitmap_exists && (z02 != z01 || z12 != z11))
+		if (normal_bitmap_exists && (z01 != z02 || z11 != z12))
 			wall_3d->neg_normal_is_visible = 1;
 	}
 }
@@ -1249,41 +1249,72 @@ void meshify_wall_face(struct wall *wall, struct wall_3d *wall_3d, int side,
 	// default to no bowtie
 	out->ignore_triangle = -1;
 
-	// below bowtie correction
-	if (wall_3d->below_bowtie_flags == BT_POS) {
-		if (side == SD_POS) {
-			z01 = z00;
-			out->ignore_triangle = 1;
-		} else {
-			z11 = z10;
-			out->ignore_triangle = 0;
+	if (face == FC_BELOW) {
+		// below bowtie correction
+		if (wall_3d->below_bowtie_flags == BT_POS) {
+			if (side == SD_POS) {
+				z01 = z00;
+				out->ignore_triangle = 1;
+			} else {
+				z11 = z10;
+				out->ignore_triangle = 0;
+			}
+		} else if (wall_3d->below_bowtie_flags == BT_NEG) {
+			if (side == SD_POS) {
+				z11 = z10;
+				out->ignore_triangle = 0;
+			} else {
+				z01 = z00;
+				out->ignore_triangle = 1;
+			}
 		}
-	} else if (wall_3d->below_bowtie_flags == BT_NEG) {
-		if (side == SD_POS) {
-			z11 = z10;
-			out->ignore_triangle = 0;
-		} else {
-			z01 = z00;
-			out->ignore_triangle = 1;
+	} else if (face == FC_ABOVE) {
+		// above bowtie correction
+		if (wall_3d->above_bowtie_flags == BT_POS) {
+			if (side == SD_POS) {
+				z10 = z11;
+				out->ignore_triangle = 0;
+			} else {
+				z00 = z01;
+				out->ignore_triangle = 1;
+			}
+		} else if (wall_3d->above_bowtie_flags == BT_NEG) {
+			if (side == SD_POS) {
+				z00 = z01;
+				out->ignore_triangle = 1;
+			} else {
+				z10 = z11;
+				out->ignore_triangle = 0;
+			}
 		}
-	}
+	} else {
+		// normal bowtie adjustments
+		if (wall_3d->below_bowtie_flags == BT_POS) {
+			if (side == SD_POS) {
+				z00 = wall_3d->z00;
+			} else {
+				z10 = wall_3d->z10;
+			}
+		} else if (wall_3d->below_bowtie_flags == BT_NEG) {
+			if (side == SD_POS) {
+				z10 = wall_3d->z10;
+			} else {
+				z00 = wall_3d->z00;
+			}
+		}
 
-	// above bowtie correction
-	if (wall_3d->above_bowtie_flags == BT_POS) {
-		if (side == SD_POS) {
-			z10 = z11;
-			out->ignore_triangle = 0;
-		} else {
-			z00 = z01;
-			out->ignore_triangle = 1;
-		}
-	} else if (wall_3d->above_bowtie_flags == BT_NEG) {
-		if (side == SD_POS) {
-			z00 = z01;
-			out->ignore_triangle = 1;
-		} else {
-			z10 = z11;
-			out->ignore_triangle = 0;
+		if (wall_3d->above_bowtie_flags == BT_POS) {
+			if (side == SD_POS) {
+				z11 = wall_3d->z13;
+			} else {
+				z01 = wall_3d->z03;
+			}
+		} else if (wall_3d->above_bowtie_flags == BT_NEG) {
+			if (side == SD_POS) {
+				z01 = wall_3d->z03;
+			} else {
+				z11 = wall_3d->z13;
+			}
 		}
 	}
 
