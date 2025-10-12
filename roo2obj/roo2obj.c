@@ -1772,7 +1772,7 @@ char *cat_dir_base(char *dir, char *base)
  * Positions and normals are transformed to make the forward axis -Z and 
  * upward axis Y. The model is also flipped to match the in-game geometry.
  */
-void to_obj(char **argv)
+void export_obj(char **argv)
 {
 	char *roo_name = basename(argv[1]);
 	char *tex_dir = argv[2];
@@ -1860,6 +1860,37 @@ void to_obj(char **argv)
 	free(mtl_name);
 }
 
+void export_json(char **argv) {
+	char *roo_name = basename(argv[1]);
+	char *json_name = change_ext(roo_name, "json");
+	FILE *json_file = fopen(json_name, "w");
+
+	fprintf(json_file, "{");
+	fprintf(json_file, "\"things\":[");
+	for (int i = 0; i < thing_count; i++) {
+		struct thing *thing = &things[i];
+		fprintf(json_file, "{");
+		fprintf(json_file, "\"type\":%d,", thing->type);
+		fprintf(json_file, "\"x_pos\":%d,", thing->x_pos);
+		fprintf(json_file, "\"y_pos\":%d,", thing->y_pos);
+		fprintf(json_file, "\"angle\":%d,", thing->angle);
+		fprintf(json_file, "\"when\":%d,", thing->when);
+		fprintf(json_file, "\"x_exit_pos\":%d,", thing->x_exit_pos);
+		fprintf(json_file, "\"y_exit_pos\":%d,", thing->y_exit_pos);
+		fprintf(json_file, "\"flags\":%d,", thing->flags);
+		fprintf(json_file, "\"id\":%d,", thing->id);
+		fprintf(json_file, "\"comment\":\"%s\"", thing->comment);
+		if (i == thing_count - 1) {
+			fprintf(json_file, "}");
+		} else {
+			fprintf(json_file, "},");
+		}
+	}
+	fprintf(json_file, "]");
+	fprintf(json_file, "}");
+	fclose(json_file);
+}
+
 int main(int argc, char **argv)
 {
 	if (argc < 3) {
@@ -1900,7 +1931,8 @@ int main(int argc, char **argv)
 
 	meshify_walls();
 	meshify_subsectors();
-	to_obj(argv);
+	export_obj(argv);
+	export_json(argv);
 
 	free(texture_dir);
 	free(walls);
