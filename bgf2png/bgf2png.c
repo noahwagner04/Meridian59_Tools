@@ -404,33 +404,33 @@ int export_metadata(char *json_file_name, char *png_file_name)
 	}
 
 	fprintf(fp, "{");
-	fprintf(fp, "\"name\": \"%s\",", bitmap_name);
-	fprintf(fp, "\"version\": %d,", version);
-	fprintf(fp, "\"sprite_count\": %d,", bitmap_count);
-	fprintf(fp, "\"group_count\": %d,", group_count);
-	fprintf(fp, "\"shrink_factor\": %d,", shrink_factor);
-	fprintf(fp, "\"image_file\": \"%s\",", png_file_name);
-	fprintf(fp, "\"sprites\": [");
+	fprintf(fp, "\"name\":\"%s\",", bitmap_name);
+	fprintf(fp, "\"version\":%d,", version);
+	fprintf(fp, "\"sprite_count\":%d,", bitmap_count);
+	fprintf(fp, "\"group_count\":%d,", group_count);
+	fprintf(fp, "\"shrink_factor\":%d,", shrink_factor);
+	fprintf(fp, "\"image_file\":\"%s\",", png_file_name);
+	fprintf(fp, "\"sprites\":[");
 
 	for (int i = 0; i < bitmap_count; i++) {
 		struct bitmap *bitmap = bitmaps + i;
 		fprintf(fp, "{");
-		fprintf(fp, "\"x_pos\": %d,", bitmap->x_pos);
-		fprintf(fp, "\"y_pos\": %d,", bitmap->y_pos);
-		fprintf(fp, "\"width\": %d,", bitmap->width);
-		fprintf(fp, "\"height\": %d,", bitmap->height);
-		fprintf(fp, "\"x_offset\": %d,", bitmap->x_offset);
-		fprintf(fp, "\"y_offset\": %d,", bitmap->y_offset);
-		fprintf(fp, "\"hotspot_count\": %d,",
+		fprintf(fp, "\"x_pos\":%d,", bitmap->x_pos);
+		fprintf(fp, "\"y_pos\":%d,", bitmap->y_pos);
+		fprintf(fp, "\"width\":%d,", bitmap->width);
+		fprintf(fp, "\"height\":%d,", bitmap->height);
+		fprintf(fp, "\"x_offset\":%d,", bitmap->x_offset);
+		fprintf(fp, "\"y_offset\":%d,", bitmap->y_offset);
+		fprintf(fp, "\"hotspot_count\":%d,",
 			bitmap->hotspot_count);
-		fprintf(fp, "\"hotspots\": [");
+		fprintf(fp, "\"hotspots\":[");
 		for (int j = 0; j < bitmap->hotspot_count; j++) {
 			struct hotspot *hotspot = bitmap->hotspots + j;
 			fprintf(fp, "{");
-			fprintf(fp, "\"number\": %d,",
+			fprintf(fp, "\"number\":%d,",
 				hotspot->number);
-			fprintf(fp, "\"x\": %d,", hotspot->x);
-			fprintf(fp, "\"y\": %d", hotspot->y);
+			fprintf(fp, "\"x\":%d,", hotspot->x);
+			fprintf(fp, "\"y\":%d", hotspot->y);
 			if (j == bitmap->hotspot_count - 1) {
 				fprintf(fp, "}");
 			} else {
@@ -445,18 +445,18 @@ int export_metadata(char *json_file_name, char *png_file_name)
 		}
 	}
 	fprintf(fp, "],");
-	fprintf(fp, "\"groups\": [");
+	fprintf(fp, "\"groups\":[");
 	int indexes_offset = 0;
 	for (int i = 0; i < group_count; i++) {
 		fprintf(fp, "{");
-		fprintf(fp, "\"index_count\": %d,", bitmap_groups[i]);
-		fprintf(fp, "\"indexes\": [");
+		fprintf(fp, "\"index_count\":%d,", bitmap_groups[i]);
+		fprintf(fp, "\"indexes\":[");
 		for (int j = 0; j < bitmap_groups[i]; ++j) {
 			if (j == bitmap_groups[i] - 1) {
 				fprintf(fp, "%d]",
 					bitmap_indexes[j + indexes_offset]);
 			} else {
-				fprintf(fp, "%d, ",
+				fprintf(fp, "%d,",
 					bitmap_indexes[j + indexes_offset]);
 			}
 		}
