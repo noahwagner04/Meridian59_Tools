@@ -96,6 +96,9 @@ struct wall_3d {
 	// height values for end coordinate (bottom = 10 ... top = 13)
 	float z10, z11, z12, z13;
 
+	// height of top of lower wall (used for bowtie correction)
+	float z01_neg, z11_neg;
+
 	int above_bowtie_flags;
 	int below_bowtie_flags;
 
@@ -109,14 +112,9 @@ struct wall_3d {
 
 /*
  * Mesh information for a quadrilateral: 2 triangles and 4 verticies.
- * For bowtied faces, only one triangle is used. ignore_triangle is set when
- * the face is a bowtie, causing one of the triangles to have an area of 0.
  */
 struct mesh_face {
 	struct mesh_object *mesh_obj;
-
-	// -1 = ignore none, 0 = ignore first, 1 means ignore second
-	int ignore_triangle;
 
 	uint32_t indices[6];
 	float positions[12];
@@ -450,33 +448,13 @@ void mesh_object_add_face(struct mesh_face *mesh_face)
 	struct mesh_object *mesh_obj = mesh_face->mesh_obj;
 	int next_vertex = mesh_obj->positions.length / 3;
 
-	int ignore_vertex = -1;
-
-	if (mesh_face->ignore_triangle == 0)
-		ignore_vertex = 1;
-
-	if (mesh_face->ignore_triangle == 1)
-		ignore_vertex = 3;
-
-	// add indices
-	if (mesh_face->ignore_triangle != -1) {
-		uint32_t *index = dynamic_array_get_next(&mesh_obj->indices);
-		*index = 0 + next_vertex;
+	for (int i = 0; i < 6; i++) {
+		uint32_t *index;
 		index = dynamic_array_get_next(&mesh_obj->indices);
-		*index = 1 + next_vertex;
-		index = dynamic_array_get_next(&mesh_obj->indices);
-		*index = 2 + next_vertex;
-	} else {
-		for (int i = 0; i < 6; i++) {
-			uint32_t *index;
-			index = dynamic_array_get_next(&mesh_obj->indices);
-			*index = mesh_face->indices[i] + next_vertex;
-		}
+		*index = mesh_face->indices[i] + next_vertex;
 	}
 
 	for (int i = 0; i < 4; i++) {
-		if (i == ignore_vertex)
-			continue;
 		// add positions
 		float *pos_x = dynamic_array_get_next(&mesh_obj->positions);
 		*pos_x = mesh_face->positions[i * 3 + 0];
@@ -1017,6 +995,9 @@ void set_wall_heights(struct wall_3d *wall_3d)
 			wall_3d->z10 = pos_z1;
 			wall_3d->z01 = pos_z0;
 			wall_3d->z11 = neg_z1;
+
+			wall_3d->z01_neg = neg_z0;
+			wall_3d->z11_neg = neg_z1;
 		}
 	} else {
 		// negative sector floor is above positive at start
@@ -1036,6 +1017,9 @@ void set_wall_heights(struct wall_3d *wall_3d)
 			wall_3d->z10 = neg_z1;
 			wall_3d->z01 = neg_z0;
 			wall_3d->z11 = pos_z1;
+
+			wall_3d->z01_neg = neg_z0;
+			wall_3d->z11_neg = neg_z1;
 		}
 	}
 
@@ -1186,8 +1170,8 @@ void transform_wall(struct wall *wall, struct wall_3d *wall_3d)
 }
 
 // face int is face type, side is pos or neg, face struct holds mesh info
-void meshify_wall_face(struct wall *wall, struct wall_3d *wall_3d, int side,
-		       int face, struct mesh_face *out)
+void meshify_wall_face(struct wall_3d *wall_3d, int side, int face,
+		       struct mesh_face *out)
 {
 	struct sidedef *sidedef;
 	uint16_t bitmap_num = 0;
@@ -1228,183 +1212,99 @@ void meshify_wall_face(struct wall *wall, struct wall_3d *wall_3d, int side,
 		top_down = 1;
 	}
 
-	// default to below wall
-	float z00 = wall_3d->z00;
-	float z01 = wall_3d->z01;
-	float z10 = wall_3d->z10;
-	float z11 = wall_3d->z11;
+	float x0;
+	float x1;
+	float y0;
+	float y1;
 
-	if (face == FC_NORMAL) {
-		z00 = wall_3d->z01;
-		z01 = wall_3d->z02;
-		z10 = wall_3d->z11;
-		z11 = wall_3d->z12;
-	} else if (face == FC_ABOVE) {
-		z00 = wall_3d->z02;
-		z01 = wall_3d->z03;
-		z10 = wall_3d->z12;
-		z11 = wall_3d->z13;
-	}
-
-	// default to no bowtie
-	out->ignore_triangle = -1;
-
-	if (face == FC_BELOW) {
-		// below bowtie correction
-		if (wall_3d->below_bowtie_flags == BT_POS) {
-			if (side == SD_POS) {
-				z01 = z00;
-				out->ignore_triangle = 1;
-			} else {
-				z11 = z10;
-				out->ignore_triangle = 0;
-			}
-		} else if (wall_3d->below_bowtie_flags == BT_NEG) {
-			if (side == SD_POS) {
-				z11 = z10;
-				out->ignore_triangle = 0;
-			} else {
-				z01 = z00;
-				out->ignore_triangle = 1;
-			}
-		}
-	} else if (face == FC_ABOVE) {
-		// above bowtie correction
-		if (wall_3d->above_bowtie_flags == BT_POS) {
-			if (side == SD_POS) {
-				z10 = z11;
-				out->ignore_triangle = 0;
-			} else {
-				z00 = z01;
-				out->ignore_triangle = 1;
-			}
-		} else if (wall_3d->above_bowtie_flags == BT_NEG) {
-			if (side == SD_POS) {
-				z00 = z01;
-				out->ignore_triangle = 1;
-			} else {
-				z10 = z11;
-				out->ignore_triangle = 0;
-			}
-		}
-	} else {
-		// normal bowtie adjustments
-		if (wall_3d->below_bowtie_flags == BT_POS) {
-			if (side == SD_POS) {
-				z00 = wall_3d->z00;
-			} else {
-				z10 = wall_3d->z10;
-			}
-		} else if (wall_3d->below_bowtie_flags == BT_NEG) {
-			if (side == SD_POS) {
-				z10 = wall_3d->z10;
-			} else {
-				z00 = wall_3d->z00;
-			}
-		}
-
-		if (wall_3d->above_bowtie_flags == BT_POS) {
-			if (side == SD_POS) {
-				z11 = wall_3d->z13;
-			} else {
-				z01 = wall_3d->z03;
-			}
-		} else if (wall_3d->above_bowtie_flags == BT_NEG) {
-			if (side == SD_POS) {
-				z01 = wall_3d->z03;
-			} else {
-				z11 = wall_3d->z13;
-			}
-		}
-	}
+	float zbl;
+	float ztl;
+	float zbr;
+	float ztr;
 
 	if (side == SD_POS) {
-		indices[0] = 0;
-		indices[1] = 2;
-		indices[2] = 1;
-		indices[3] = 0;
-		indices[4] = 3;
-		indices[5] = 2;
-	} else {
-		indices[0] = 0;
-		indices[1] = 2;
-		indices[2] = 3;
-		indices[3] = 0;
-		indices[4] = 1;
-		indices[5] = 2;
-	}
-
-	// x and y texture offsets, y_offset is needed to clip wall height in no_v_tile case
-	float x_offset = 0;
-	float y_offset = 0;
-
-	if (side == SD_POS) {
-		x_offset = wall_3d->pos_x_offset;
-		y_offset = wall_3d->pos_y_offset;
-		// reverse flipping for positive facing walls (i guess?)
-		flip_h = !flip_h;
-	} else {
-		x_offset = wall_3d->neg_x_offset;
-		y_offset = wall_3d->neg_y_offset;
-	}
-
-	// textures are transposed
-	float tex_width = (float)(mat->tex_height) / mat->shrink_factor;
-	float tex_height = (float)(mat->tex_width) / mat->shrink_factor;
-
-	// clamp verticies depending on no vertical tile flag (only for normal walls)
-	if (no_v_tile && face == FC_NORMAL) {
-		float max_height =
-			(tex_height - y_offset) / BITMAP_WIDTH * FINENESS;
-		if (top_down) {
-			// clamp bottom verticies
-			if (z01 - z00 > max_height)
-				z00 = z01 - max_height;
-
-			if (z11 - z10 > max_height)
-				z10 = z11 - max_height;
-		} else {
-			// clamp top verticies
-			if (z01 - z00 > max_height)
-				z01 = z00 + max_height;
-
-			if (z11 - z10 > max_height)
-				z11 = z10 + max_height;
+		x0 = wall_3d->x0;
+		x1 = wall_3d->x1;
+		y0 = wall_3d->y0;
+		y1 = wall_3d->y1;
+		if (face == FC_BELOW) {
+			zbl = wall_3d->z00;
+			ztl = wall_3d->z01;
+			zbr = wall_3d->z10;
+			ztr = wall_3d->z11;
+			if (wall_3d->below_bowtie_flags == BT_POS ||
+			    wall_3d->below_bowtie_flags == BT_NEG) {
+				ztl = wall_3d->z01_neg;
+				ztr = wall_3d->z11_neg;
+			}
+		} else if (face == FC_NORMAL) {
+			zbl = wall_3d->z01;
+			ztl = wall_3d->z02;
+			zbr = wall_3d->z11;
+			ztr = wall_3d->z12;
+		} else if (face == FC_ABOVE) {
+			zbl = wall_3d->z02;
+			ztl = wall_3d->z03;
+			zbr = wall_3d->z12;
+			ztr = wall_3d->z13;
+		}
+	} else if (side == SD_NEG) {
+		x0 = wall_3d->x1;
+		x1 = wall_3d->x0;
+		y0 = wall_3d->y1;
+		y1 = wall_3d->y0;
+		if (face == FC_BELOW) {
+			zbl = wall_3d->z10;
+			ztl = wall_3d->z11;
+			zbr = wall_3d->z00;
+			ztr = wall_3d->z01;
+		} else if (face == FC_NORMAL) {
+			zbl = wall_3d->z11;
+			ztl = wall_3d->z12;
+			zbr = wall_3d->z01;
+			ztr = wall_3d->z02;
+		} else if (face == FC_ABOVE) {
+			zbl = wall_3d->z12;
+			ztl = wall_3d->z13;
+			zbr = wall_3d->z02;
+			ztr = wall_3d->z03;
 		}
 	}
 
 	// top left
-	positions[0] = wall_3d->x0;
-	positions[1] = wall_3d->y0;
-	positions[2] = z01;
-
-	// top right
-	positions[3] = wall_3d->x1;
-	positions[4] = wall_3d->y1;
-	positions[5] = z11;
-
-	// bottom right
-	positions[6] = wall_3d->x1;
-	positions[7] = wall_3d->y1;
-	positions[8] = z10;
+	positions[0] = x0;
+	positions[1] = y0;
+	positions[2] = ztl;
 
 	// bottom left
-	positions[9] = wall_3d->x0;
-	positions[10] = wall_3d->y0;
-	positions[11] = z00;
+	positions[3] = x0;
+	positions[4] = y0;
+	positions[5] = zbl;
 
-	float btw_x = (wall_3d->x1 - wall_3d->x0);
-	float btw_y = (wall_3d->y1 - wall_3d->y0);
+	// bottom right
+	positions[6] = x1;
+	positions[7] = y1;
+	positions[8] = zbr;
+
+	// top right
+	positions[9] = x1;
+	positions[10] = y1;
+	positions[11] = ztr;
+
+	indices[0] = 0;
+	indices[1] = 1;
+	indices[2] = 2;
+	indices[3] = 0;
+	indices[4] = 2;
+	indices[5] = 3;
+
+	float btw_x = (x1 - x0);
+	float btw_y = (y1 - y0);
 	float btw_length = sqrt(btw_x * btw_x + btw_y * btw_y);
 
-	normal[0] = btw_y / btw_length;
-	normal[1] = -btw_x / btw_length;
+	normal[0] = -btw_y / btw_length;
+	normal[1] = btw_x / btw_length;
 	normal[2] = 0;
-
-	if (side == SD_POS) {
-		normal[0] *= -1;
-		normal[1] *= -1;
-	}
 
 	if (!mat->is_valid) {
 		return;
@@ -1422,70 +1322,168 @@ void meshify_wall_face(struct wall *wall, struct wall_3d *wall_3d, int side,
 	// - shrink factor also has to be taken into account
 	// - sloped wall origins are "arbitrary"
 
-	// fineness coordinates of texture origin (relative to left side of wall, and world floor)
-	float x_origin = 0;
-	float z_origin = top_down ? z01 : z00;
+	float utl, vtl;
+	float ubl, vbl;
+	float ubr, vbr;
+	float utr, vtr;
 
-	// choose "arbitrary" z origin for sloped walls
-	if (fabsf(z00 - z10) > 1e-5 && !top_down) {
-		// bottom is sloped
-		z_origin = fmin(z00, z10);
-		z_origin = ceilf(z_origin / FINENESS) * FINENESS;
+	// x and y texture offsets, y_offset is needed to clip wall height in no_v_tile case
+	int32_t x_offset;
+	int32_t y_offset;
+
+	if (side == SD_POS) {
+		x_offset = wall_3d->pos_x_offset;
+		y_offset = wall_3d->pos_y_offset;
+	} else if (side == SD_NEG) {
+		x_offset = wall_3d->neg_x_offset;
+		y_offset = wall_3d->neg_y_offset;
 	}
 
-	if (fabsf(z01 - z11) > 1e-5 && top_down) {
-		// top is sloped
-		z_origin = fmin(z01, z11);
-		z_origin = ceilf(z_origin / FINENESS) * FINENESS;
+	y_offset = y_offset << 16;
+	y_offset = y_offset >> 16;
+
+	float shrink = mat->shrink_factor;
+
+	float inv_width = 1.0f / (float)mat->tex_width;
+	float inv_height = 1.0f / (float)mat->tex_height;
+	float inv_width_fudge = 1.0f / ((float)mat->tex_width * 16.0f);
+	float inv_height_fudge = 1.0f / ((float)mat->tex_height * 16.0f);
+
+	utl = (float)x_offset * shrink * inv_height;
+	ubl = (float)x_offset * shrink * inv_height;
+	ubr = (float)(utl + (btw_length / BLAK_FACTOR * shrink) * inv_height);
+	utr = (float)(ubl + (btw_length / BLAK_FACTOR * shrink) * inv_height);
+
+	utl = 1 - utl;
+	ubl = 1 - ubl;
+	ubr = 1 - ubr;
+	utr = 1 - utr;
+
+	int top, bottom;
+	if (!top_down) {
+		if (zbl == zbr)
+			bottom = zbl;
+		else {
+			bottom = fminf(zbl, zbr);
+			bottom = bottom & ~(FINENESS - 1);
+		}
+
+		if (ztl == ztr)
+			top = ztl;
+		else {
+			top = fmaxf(ztl, ztr);
+			top = (top + FINENESS - 1) & ~(FINENESS - 1);
+		}
+
+		if (zbl == zbr) {
+			vbl = 1.0f - (((float)y_offset * shrink) * inv_width);
+			vbr = 1.0f - (((float)y_offset * shrink) * inv_width);
+		} else {
+			vbl = 1.0f - (((float)y_offset * shrink) * inv_width);
+			vbr = 1.0f - (((float)y_offset * shrink) * inv_width);
+			vbl -= ((float)zbl - bottom) * shrink * inv_width_fudge;
+			vbr -= ((float)zbr - bottom) * shrink * inv_width_fudge;
+		}
+
+		vtl = vbl - ((float)(ztl - zbl) * shrink * inv_width_fudge);
+		vtr = vbr - ((float)(ztr - zbr) * shrink * inv_width_fudge);
+	} else {
+		if (ztl == ztr)
+			top = ztl;
+		else {
+			top = fmaxf(ztl, ztr);
+			top = (top + FINENESS - 1) & ~(FINENESS - 1);
+		}
+
+		if (zbl == zbr)
+			bottom = zbl;
+		else {
+			bottom = fminf(zbl, zbr);
+			bottom = bottom & ~(FINENESS - 1);
+		}
+
+		if (ztl == ztr) {
+			vtl = 0.0f;
+			vtr = 0.0f;
+		} else {
+			vtl = ((float)top - ztl) * shrink * inv_width_fudge;
+			vtr = ((float)top - ztr) * shrink * inv_width_fudge;
+		}
+
+		vtl -= ((float)(y_offset * shrink) * inv_width);
+		vtr -= ((float)(y_offset * shrink) * inv_width);
+
+		vbl = vtl + ((ztl - zbl) * shrink * inv_width_fudge);
+		vbr = vtr + ((ztr - zbr) * shrink * inv_width_fudge);
 	}
-
-	x_origin -= x_offset / BITMAP_WIDTH * FINENESS;
-	z_origin -= y_offset / BITMAP_WIDTH * FINENESS;
-
-	float u0 = (0 - x_origin) / FINENESS * BITMAP_WIDTH / tex_width;
-	float u1 =
-		(btw_length - x_origin) / FINENESS * BITMAP_WIDTH / tex_width;
-
-	// shift x coordinates around the half way point
-	float test = 0.5 - (u1 + u0) / 2;
-	u0 += 2 * test;
-	u1 += 2 * test;
-
-	// add 1 since bottom of texture starts at v = 1
-	float v00 = (z_origin - z00) / FINENESS * BITMAP_WIDTH / tex_height + 1;
-	float v01 = (z_origin - z01) / FINENESS * BITMAP_WIDTH / tex_height + 1;
-	float v10 = (z_origin - z10) / FINENESS * BITMAP_WIDTH / tex_height + 1;
-	float v11 = (z_origin - z11) / FINENESS * BITMAP_WIDTH / tex_height + 1;
-
-	// uv coordinates are swapped to transpose the texture
-	// top left
-	tex_coords[0] = v01;
-	tex_coords[1] = u0;
-
-	// top right
-	tex_coords[2] = v11;
-	tex_coords[3] = u1;
-
-	// bottom right
-	tex_coords[4] = v10;
-	tex_coords[5] = u1;
-
-	// bottom left
-	tex_coords[6] = v00;
-	tex_coords[7] = u0;
 
 	// flip horizontally if specified
 	if (flip_h) {
-		float u_temp = tex_coords[1];
+		float tmp = ubl;
 
-		tex_coords[1] = tex_coords[3];
-		tex_coords[3] = u_temp;
+		ubl = ubr;
+		ubr = tmp;
 
-		u_temp = tex_coords[5];
+		tmp = utl;
 
-		tex_coords[5] = tex_coords[7];
-		tex_coords[7] = u_temp;
+		utl = utr;
+		utr = tmp;
 	}
+
+	if (no_v_tile && face == FC_NORMAL) {
+		if (vtl < 0.0f) {
+			float tex, wall, ratio, temp;
+
+			tex = vbl - vtl;
+			if (tex == 0)
+				tex = 1.0f;
+			temp = -vtl;
+			ratio = temp / tex;
+
+			wall = ztl - zbl;
+			temp = wall * ratio;
+			positions[2] -= temp;
+			vtl = 0.0f;
+		}
+		if (vtr < 0.0f) {
+			float tex, wall, ratio, temp;
+
+			tex = vbr - vtr;
+			if (tex == 0)
+				tex = 1.0f;
+			temp = -vtr;
+			ratio = temp / tex;
+
+			wall = ztr - zbr;
+			temp = wall * ratio;
+			positions[11] -= temp;
+			vtr = 0.0f;
+		}
+		positions[5] -= 16.0f;
+		positions[8] -= 16.0f;
+	}
+
+	vtl += 1.0f / mat->tex_width;
+	vtr += 1.0f / mat->tex_width;
+	vbl -= 1.0f / mat->tex_width;
+	vbr -= 1.0f / mat->tex_width;
+
+	// assign transposed UVs (since textures are transposed)
+	// top left
+	tex_coords[0] = vtl;
+	tex_coords[1] = utl;
+
+	// bottom left
+	tex_coords[2] = vbl;
+	tex_coords[3] = ubl;
+
+	// bottom right
+	tex_coords[4] = vbr;
+	tex_coords[5] = ubr;
+
+	// top right
+	tex_coords[6] = vtr;
+	tex_coords[7] = utr;
 }
 
 void meshify_wall(struct wall *wall)
@@ -1496,34 +1494,32 @@ void meshify_wall(struct wall *wall)
 	struct mesh_face mesh_face;
 
 	if (wall_3d.pos_below_is_visible) {
-		meshify_wall_face(wall, &wall_3d, SD_POS, FC_BELOW, &mesh_face);
+		meshify_wall_face(&wall_3d, SD_POS, FC_BELOW, &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 
 	if (wall_3d.pos_above_is_visible) {
-		meshify_wall_face(wall, &wall_3d, SD_POS, FC_ABOVE, &mesh_face);
+		meshify_wall_face(&wall_3d, SD_POS, FC_ABOVE, &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 
 	if (wall_3d.pos_normal_is_visible) {
-		meshify_wall_face(wall, &wall_3d, SD_POS, FC_NORMAL,
-				  &mesh_face);
+		meshify_wall_face(&wall_3d, SD_POS, FC_NORMAL, &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 
 	if (wall_3d.neg_below_is_visible) {
-		meshify_wall_face(wall, &wall_3d, SD_NEG, FC_BELOW, &mesh_face);
+		meshify_wall_face(&wall_3d, SD_NEG, FC_BELOW, &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 
 	if (wall_3d.neg_above_is_visible) {
-		meshify_wall_face(wall, &wall_3d, SD_NEG, FC_ABOVE, &mesh_face);
+		meshify_wall_face(&wall_3d, SD_NEG, FC_ABOVE, &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 
 	if (wall_3d.neg_normal_is_visible) {
-		meshify_wall_face(wall, &wall_3d, SD_NEG, FC_NORMAL,
-				  &mesh_face);
+		meshify_wall_face(&wall_3d, SD_NEG, FC_NORMAL, &mesh_face);
 		mesh_object_add_face(&mesh_face);
 	}
 }

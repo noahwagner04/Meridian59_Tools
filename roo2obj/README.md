@@ -32,6 +32,6 @@ If textures fail to render, it’s usually because the paths in the generated MT
 
 As a quick workaround, run `roo2obj` with an **absolute path** to the texture directory as the second argument. This ensures the MTL points directly to the correct files and makes Blender load the textures reliably. This workaround is only meant for viewing or exporting in Blender and shouldn’t be used for distribution. A better long-term solution is to export to a modern format like glTF (which supports embedded textures), or to ensure the MTL file uses correct relative paths.
 ## TODO
-- Update the "Importing into Blender" section to remove the transformations. Only keep the step to run the pyton script.
-- Fix error that's causing settle1.roo and settle2.roo issues. (buggy ocean floor, walls appearing higher, textures not mapping correctly, invisible wall faces)
+- Update the "Importing into Blender" section to remove the transformations. Only keep the step to run the python script.
 - Export room boundry data (specified by the "things" room editor feature)
+- Export what materials are animated in json, maybe?
